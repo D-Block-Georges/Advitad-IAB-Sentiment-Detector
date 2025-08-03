@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advitad - IAB & Sentiment Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1e293b;
+            --dark-card: #334155;
+            --dark-text: #f1f5f9;
+            --dark-border: #475569;
+        }
+        
+        /* Mode sombre */
+        [data-theme="dark"] {
+            background-color: var(--dark-bg) !important;
+            color: var(--dark-text) !important;
+        }
+        
+        [data-theme="dark"] .card {
+            background-color: var(--dark-card) !important;
+            border-color: var(--dark-border) !important;
+            color: var(--dark-text) !important;
+        }
+        
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: var(--dark-card) !important;
+            border-color: var(--dark-border) !important;
+            color: var(--dark-text) !important;
+        }
+        
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background-color: var(--dark-card) !important;
+            border-color: var(--primary-color) !important;
+            color: var(--dark-text) !important;
+            box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25) !important;
+        }
+        
+        [data-theme="dark"] .progress-step {
+            color: var(--dark-text) !important;
+        }
+        
+        /* Header styles */
+        .brand-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .brand-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .brand-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .brand-logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .brand-tagline {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(180deg);
+        }
+        .result-card {
+            margin-top: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .sentiment-positive { border-left-color: #28a745; }
+        .sentiment-negative { border-left-color: #dc3545; }
+        .sentiment-neutral { border-left-color: #ffc107; }
+        .loading {
+            display: none;
+        }
+                .iab-tag {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 0.85em;
+            margin: 4px;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+        }
+        .iab-category {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .iab-info {
+            flex-grow: 1;
+        }
+        .iab-code {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 0.9em;
+        }
+        .iab-name {
+            color: #495057;
+            margin-top: 2px;
+            font-size: 0.95em;
+        }
+        .iab-confidence {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        .iab-code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        .progress-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+        .progress-step.active {
+            opacity: 1;
+            color: #007bff;
+        }
+        .progress-step.completed {
+            opacity: 1;
+            color: #28a745;
+        }
+        .progress-step i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .step-spinner {
+            display: none;
+            margin-left: 10px;
+        }
+        .progress-step.active .step-spinner {
+            display: inline-block;
+        }
+        
+        /* Overlay de chargement des modèles */
+        .models-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .models-loading-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .models-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .model-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .model-status.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .model-status-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Overlay de chargement des modèles -->
+    <div class="models-loading-overlay" id="modelsLoadingOverlay">
+        <div class="models-loading-content">
+            <div class="models-loading-spinner"></div>
+            <h4>🧠 Chargement des modèles IA</h4>
+            <p class="text-muted mb-4">Initialisation des modèles de classification et d'analyse...</p>
+            
+            <div class="model-status" id="taxonomyStatus">
+                <span>📋 Taxonomie IAB</span>
+                <div class="spinner-border spinner-border-sm model-status-icon" role="status"></div>
+            </div>
+            
+            <div class="model-status" id="classificationStatus">
+                <span>🏷️ Modèle de classification</span>
+                <div class="spinner-border spinner-border-sm model-status-icon" role="status"></div>
+            </div>
+            
+            <div class="model-status" id="sentimentStatus">
+                <span>💭 Modèle de sentiment</span>
+                <div class="spinner-border spinner-border-sm model-status-icon" role="status"></div>
+            </div>
+            
+            <button class="btn btn-primary mt-3" id="forcePreloadBtn" style="display: none;">
+                Charger les modèles
+            </button>
+        </div>
+    </div>
+
+    <!-- Header avec branding -->
+    <header class="brand-header">
+        <button class="btn theme-toggle" id="themeToggle" title="Basculer le mode">
+            <i class="fas fa-moon"></i>
+        </button>
+        <div class="container">
+            <div class="brand-content text-center">
+                <h1 class="brand-logo">
+                    <i class="fas fa-brain me-3"></i>Advitad
+                </h1>
+                <p class="brand-tagline">
+                    Proof of Concept • IAB & Sentiment Detector
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mt-4">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-upload"></i> Analyser du contenu</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="analyzeForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Choisissez le type d'entrée :</label>
+                                    <select class="form-select" id="inputTypeSelect">
+                                        <option value="text">📝 Coller du texte</option>
+                                        <option value="url">🔗 Coller un lien</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3" id="textInputArea">
+                                    <label for="contentText" class="form-label">Contenu à analyser</label>
+                                    <textarea class="form-control" id="contentText" rows="6" 
+                                              placeholder="Collez ici le texte de votre article..."></textarea>
+                                </div>
+                                
+                                <div class="mb-3" id="urlInputArea" style="display: none;">
+                                    <label for="contentUrl" class="form-label">URL de l'article</label>
+                                    <input type="url" class="form-control" id="contentUrl" 
+                                           placeholder="https://example.com/article">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> Analyser le contenu
+                                </button>
+                            </form>
+                            
+                            <div class="loading mt-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6><i class="fas fa-cogs"></i> Analyse en cours...</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="progress-step" id="step-extraction">
+                                            <i class="fas fa-download"></i>
+                                            <span>Extraction du contenu</span>
+                                            <div class="spinner-border spinner-border-sm step-spinner" role="status"></div>
+                                        </div>
+                                        <div class="progress-step" id="step-sentiment">
+                                            <i class="fas fa-heart"></i>
+                                            <span>Analyse du sentiment</span>
+                                            <div class="spinner-border spinner-border-sm step-spinner" role="status"></div>
+                                        </div>
+                                        <div class="progress-step" id="step-iab">
+                                            <i class="fas fa-tags"></i>
+                                            <span>Classification IAB</span>
+                                            <div class="spinner-border spinner-border-sm step-spinner" role="status"></div>
+                                        </div>
+                                        <div class="progress-step" id="step-content-type">
+                                            <i class="fas fa-file-alt"></i>
+                                            <span>Détection du type de contenu</span>
+                                            <div class="spinner-border spinner-border-sm step-spinner" role="status"></div>
+                                        </div>
+                                        <div class="progress-step" id="step-finalization">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Finalisation</span>
+                                            <div class="spinner-border spinner-border-sm step-spinner" role="status"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <!-- Bloc d'extraction (affiché après extraction) -->
+                    <div id="extractionResults" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6><i class="fas fa-extract"></i> Contenu extrait</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-info-circle"></i> Métadonnées</h6>
+                                    <div id="extractedMetadata">
+                                        <!-- Les métadonnées s'afficheront ici -->
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6><i class="fas fa-file-text"></i> Aperçu du texte</h6>
+                                    <div id="extractedTextPreview" class="text-muted" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 0.9em;">
+                                        <!-- L'aperçu du texte s'affichera ici -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bloc de résultats finaux -->
+                    <div id="results" style="display: none;">
+                        <!-- Les résultats s'afficheront ici -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ========== GESTION DU THÈME SOMBRE ==========
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const themeIcon = themeToggle.querySelector('i');
+        
+        // Charger le thème depuis localStorage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+        
+        function setTheme(theme) {
+            body.setAttribute('data-theme', theme);
+            themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+        
+        // ========== GESTION DU CHARGEMENT DES MODÈLES ==========
+        
+        async function checkModelsStatus() {
+            try {
+                const response = await fetch('/models/status');
+                const status = await response.json();
+                return status;
+            } catch (error) {
+                console.error('Erreur lors de la vérification des modèles:', error);
+                return { status: 'error', classification_ready: false, sentiment_ready: false };
+            }
+        }
+        
+        function updateModelStatus(elementId, isReady, label) {
+            const element = document.getElementById(elementId);
+            const icon = element.querySelector('.model-status-icon');
+            
+            if (isReady) {
+                element.classList.add('ready');
+                icon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+            } else {
+                element.classList.remove('ready');
+                icon.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+            }
+        }
+        
+        async function preloadModels() {
+            try {
+                const response = await fetch('/models/preload', { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    console.log('Modèles préchargés:', result.message);
+                    return true;
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('Erreur lors du préchargement:', error);
+                return false;
+            }
+        }
+        
+        async function waitForModels() {
+            const overlay = document.getElementById('modelsLoadingOverlay');
+            const forceBtn = document.getElementById('forcePreloadBtn');
+            let modelsReady = false;
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            // Vérifier le statut initial
+            let status = await checkModelsStatus();
+            
+            // Si les modèles ne sont pas disponibles, afficher le bouton de force
+            if (status.status === 'unavailable' || status.status === 'error') {
+                forceBtn.style.display = 'block';
+                forceBtn.onclick = async () => {
+                    forceBtn.disabled = true;
+                    forceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Chargement...';
+                    
+                    const success = await preloadModels();
+                    if (success) {
+                        // Recommencer la vérification
+                        attempts = 0;
+                        forceBtn.style.display = 'none';
+                        checkLoop();
+                    } else {
+                        forceBtn.disabled = false;
+                        forceBtn.innerHTML = 'Réessayer';
+                    }
+                };
+                return;
+            }
+            
+            async function checkLoop() {
+                const status = await checkModelsStatus();
+                
+                // Mettre à jour les indicateurs
+                updateModelStatus('taxonomyStatus', status.taxonomy_loaded, 'Taxonomie IAB');
+                updateModelStatus('classificationStatus', status.classification_ready, 'Classification');
+                updateModelStatus('sentimentStatus', status.sentiment_ready, 'Sentiment');
+                
+                // Vérifier si tout est prêt
+                if (status.status === 'ready' && status.classification_ready && status.sentiment_ready) {
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                    }, 1000); // Petit délai pour voir les checkmarks
+                    return;
+                }
+                
+                attempts++;
+                
+                // Si pas encore prêt et pas trop d'attempts, relancer le préchargement
+                if (attempts === 1) {
+                    await preloadModels();
+                }
+                
+                // Continuer à vérifier toutes les 2 secondes
+                setTimeout(checkLoop, 2000);
+            }
+            
+            checkLoop();
+        }
+        
+        // Démarrer la vérification au chargement de la page
+        document.addEventListener('DOMContentLoaded', waitForModels);
+        
+        // ========== GESTION DE L'INTERFACE UTILISATEUR ==========
+        // Gestion du sélecteur de type d'input
+        document.getElementById('inputTypeSelect').addEventListener('change', function() {
+            const textArea = document.getElementById('textInputArea');
+            const urlArea = document.getElementById('urlInputArea');
+            
+            if (this.value === 'text') {
+                textArea.style.display = 'block';
+                urlArea.style.display = 'none';
+            } else {
+                textArea.style.display = 'none';
+                urlArea.style.display = 'block';
+            }
+        });
+
+        // Fonction pour afficher les résultats d'extraction
+        function displayExtractionResults(result) {
+            const extractionDiv = document.getElementById('extractionResults');
+            const metadataDiv = document.getElementById('extractedMetadata');
+            const textPreviewDiv = document.getElementById('extractedTextPreview');
+            
+            // Afficher les métadonnées
+            metadataDiv.innerHTML = `
+                <small class="text-muted">
+                    <strong>Titre:</strong> ${result.metadata.title || 'Non disponible'}<br>
+                    <strong>Description:</strong> ${result.metadata.description || 'Non disponible'}<br>
+                    <strong>Source:</strong> ${result.metadata.url || 'Saisie directe'}<br>
+                    <strong>Longueur:</strong> ${result.extracted_text.length} caractères
+                </small>
+            `;
+            
+            // Afficher l'aperçu du texte (premiers 500 caractères)
+            const preview = result.extracted_text.length > 500 
+                ? result.extracted_text.substring(0, 500) + '...'
+                : result.extracted_text;
+            
+            textPreviewDiv.innerHTML = preview.replace(/\n/g, '<br>');
+            
+            // Afficher le bloc
+            extractionDiv.style.display = 'block';
+        }
+        function updateProgressStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            const icon = step.querySelector('i');
+            
+            // Reset classes
+            step.classList.remove('active', 'completed');
+            
+            if (status === 'active') {
+                step.classList.add('active');
+            } else if (status === 'completed') {
+                step.classList.add('completed');
+                // Changer l'icône pour une coche
+                icon.className = 'fas fa-check-circle';
+            }
+        }
+
+        // Simulation du workflow avec des délais
+        async function simulateWorkflow(result) {
+            const steps = [
+                { id: 'step-extraction', delay: 1500, showExtraction: true },
+                { id: 'step-sentiment', delay: 2000 },
+                { id: 'step-iab', delay: 2500 },
+                { id: 'step-content-type', delay: 1500 },
+                { id: 'step-finalization', delay: 800 }
+            ];
+            
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                
+                // Activer l'étape courante
+                updateProgressStep(step.id, 'active');
+                
+                // Attendre le délai
+                await new Promise(resolve => setTimeout(resolve, step.delay));
+                
+                // Marquer comme complété
+                updateProgressStep(step.id, 'completed');
+                
+                // Afficher l'extraction après l'étape d'extraction
+                if (step.showExtraction && result) {
+                    displayExtractionResults(result);
+                }
+            }
+        }
+
+        // Gestion du formulaire
+        document.getElementById('analyzeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const inputType = document.getElementById('inputTypeSelect').value;
+            const loading = document.querySelector('.loading');
+            const results = document.getElementById('results');
+            const extractionResults = document.getElementById('extractionResults');
+            
+            // Préparation des données
+            let data = {};
+            if (inputType === 'text') {
+                const content = document.getElementById('contentText').value.trim();
+                if (!content) {
+                    alert('Veuillez saisir du contenu à analyser');
+                    return;
+                }
+                data.content = content;
+            } else {
+                const url = document.getElementById('contentUrl').value.trim();
+                if (!url) {
+                    alert('Veuillez saisir une URL valide');
+                    return;
+                }
+                data.url = url;
+            }
+            
+            // Reset des étapes de progression
+            const allSteps = document.querySelectorAll('.progress-step');
+            allSteps.forEach(step => {
+                step.classList.remove('active', 'completed');
+                const icon = step.querySelector('i');
+                // Restaurer les icônes originales
+                if (step.id === 'step-extraction') icon.className = 'fas fa-download';
+                else if (step.id === 'step-sentiment') icon.className = 'fas fa-heart';
+                else if (step.id === 'step-iab') icon.className = 'fas fa-tags';
+                else if (step.id === 'step-content-type') icon.className = 'fas fa-file-alt';
+                else if (step.id === 'step-finalization') icon.className = 'fas fa-check-circle';
+            });
+            
+            // Affichage du loader avec progression
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            extractionResults.style.display = 'none'; // Cacher l'extraction précédente
+            
+            try {
+                // Faire l'appel API
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Démarrer la simulation du workflow avec les résultats
+                    const workflowPromise = simulateWorkflow(result);
+                    
+                    // Attendre que le workflow soit terminé
+                    await workflowPromise;
+                    
+                    displayResults(result);
+                } else {
+                    throw new Error(result.error || 'Erreur lors de l\'analyse');
+                }
+                
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            // Construire l'affichage des catégories IAB avec détails
+            const iabCategories = result.iab_categories.map(category => `
+                <div class="iab-category">
+                    <div class="iab-info">
+                        <div class="iab-code">${category.code}</div>
+                        <div class="iab-name">${category.name}</div>
+                    </div>
+                    <div class="iab-confidence">${Math.round(category.confidence * 100)}%</div>
+                </div>
+            `).join('');
+            
+            const sentimentClass = `sentiment-${result.sentiment}`;
+            const sentimentIcon = result.sentiment === 'positive' ? 'fa-smile' : 
+                                 result.sentiment === 'negative' ? 'fa-frown' : 'fa-meh';
+            
+            resultsDiv.innerHTML = `
+                <div class="card result-card ${sentimentClass}">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line"></i> Résultats de l'analyse</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6><i class="fas fa-tags"></i> Catégories IAB</h6>
+                            <div>${iabCategories}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas ${sentimentIcon}"></i> Sentiment</h6>
+                            <span class="badge bg-${result.sentiment === 'positive' ? 'success' : 
+                                                   result.sentiment === 'negative' ? 'danger' : 'warning'}">
+                                ${result.sentiment}
+                            </span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-file-alt"></i> Type de contenu</h6>
+                            <span class="badge bg-info">${result.content_type}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6><i class="fas fa-info-circle"></i> Métadonnées</h6>
+                            <small class="text-muted">
+                                <strong>Titre:</strong> ${result.metadata.title}<br>
+                                <strong>Description:</strong> ${result.metadata.description}<br>
+                                <strong>Source:</strong> ${result.metadata.url}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
